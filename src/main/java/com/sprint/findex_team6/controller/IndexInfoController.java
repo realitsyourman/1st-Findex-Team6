@@ -1,10 +1,10 @@
 package com.sprint.findex_team6.controller;
 
 
+import com.sprint.findex_team6.dto.CursorPageResponse;
 import com.sprint.findex_team6.dto.IndexInfoDto;
 import com.sprint.findex_team6.dto.IndexInfoSummaryDto;
-import com.sprint.findex_team6.dto.request.IndexInfoCreateRequest;
-import com.sprint.findex_team6.dto.request.IndexInfoUpdateRequest;
+import com.sprint.findex_team6.dto.request.*;
 import com.sprint.findex_team6.dto.response.CursorPageResponseIndexInfoDto;
 import com.sprint.findex_team6.entity.Index;
 import com.sprint.findex_team6.service.IndexService;
@@ -48,25 +48,30 @@ public class IndexInfoController {
     return ResponseEntity.status(HttpStatus.OK).body(indexInfoDto);
   }
 
-  @GetMapping
-  public ResponseEntity<CursorPageResponseIndexInfoDto<IndexInfoDto>> getIndexInfos(
-          @RequestParam(required = false) String indexClassification,
-          @RequestParam(required = false) String indexName,
-          @RequestParam(required = false) Boolean favorite,
-          @RequestParam(required = false) String cursor,
-          @RequestParam(required = false) Long idAfter,
-          @RequestParam(defaultValue = "indexClassification") String sortField,
-          @RequestParam(defaultValue = "asc") String sortDirection,
-          @RequestParam(defaultValue = "10") int size  // 페이지 크기 (기본값 10)
+  @GetMapping("/index-infos")
+  public ResponseEntity<CursorPageResponse<IndexInfoDto>> getIndexInfos(
+          @ModelAttribute IndexInfoQueryRequest request,
+          @RequestParam(defaultValue = "indexName") IndexSortField sortField,
+          @RequestParam(defaultValue = "desc") SortDirection sortDirection,
+          @RequestParam(defaultValue = "10") int size
   ) {
-    Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortField);
-    Pageable pageable = PageRequest.of(0, size, sort);
+    Sort.Direction direction = (sortDirection == SortDirection.asc)
+            ? Sort.Direction.ASC : Sort.Direction.DESC;
 
-    CursorPageResponseIndexInfoDto<IndexInfoDto> response =
-            indexService.getIndexInfos(indexClassification, indexName, favorite, cursor, idAfter, sortField, sortDirection, size, pageable);
+    Sort sort = Sort.by(
+            new Sort.Order(direction, sortField.name()),
+            new Sort.Order(direction, "id")
+    );
 
-    return ResponseEntity.ok(response);
+    PageRequest pageRequest = PageRequest.of(0, size, sort);
+
+    CursorPageResponse<IndexInfoDto> result = indexService.getIndexInfos(
+            request, pageRequest, sortField, sortDirection
+    );
+
+    return ResponseEntity.ok(result);
   }
+
 
 
   @GetMapping("/summaries")
